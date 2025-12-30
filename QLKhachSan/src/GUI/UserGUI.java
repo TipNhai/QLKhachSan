@@ -35,7 +35,7 @@ public class UserGUI extends JFrame {
         setTitle("Form Đăng Nhập ");
         setLayout(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        //setLocationRelativeTo(null);
         setResizable(false);
         add(new JLabel("HỆ THỐNG ĐẶT PHÒNG KHÁCH SẠN") {{
             setBounds(10, 10, 300, 50);
@@ -159,6 +159,10 @@ public class UserGUI extends JFrame {
             UserGUI.this.dispose();
         });
 
+        btnDX.addActionListener(e->{
+            dispose();
+            new UserGUI(null).setVisible(true);
+        });
         btnXoa.addActionListener(e->dlt());
 
         btnDat.addActionListener(e->

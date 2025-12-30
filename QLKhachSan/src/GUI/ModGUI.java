@@ -105,7 +105,11 @@ public class ModGUI extends JFrame {
         btnUpdate.addActionListener(e ->update());
 
         btnCheckIn.addActionListener(e->handleCheckIn());
-        btnCheckOut.addActionListener(e->handleCheckOut());
+        btnCheckOut.addActionListener(e->{
+            PaymentGUI dialog = new PaymentGUI(this, txtBookingID.getText());
+            dialog.setVisible(true); // CHỜ đến khi đóng dialog
+            handleCheckOut();
+        });
         btnLogout.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(
                     this,

@@ -29,6 +29,10 @@ public class DNFORM extends JFrame{
                     Users user= UserDAO.dNhap(txtUserName.getText(),password);
                     if(user.getRole().equals("USER")){
                         new UserGUI(user).setVisible(true);
+                    }else if(user.getRole().equals("MOD")){
+                        new ModGUI(user).setVisible(true);
+                    }else if (user.getRole().equals("ADMIN")){
+                        new AdminGUI(user).setVisible(true);
                     }
                     DNFORM.this.dispose();
                 }
