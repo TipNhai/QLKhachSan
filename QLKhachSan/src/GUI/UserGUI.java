@@ -171,6 +171,9 @@ public class UserGUI extends JFrame {
                     dlt();
                 }
         );
+        btnLichSu.addActionListener(e->{
+            new LichSuForm(user).setVisible(true);
+        });
 
       }
 

@@ -1,13 +1,11 @@
 package GUI;
 
+import Model.Users;
 import Utils.ConnectJDBC;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class LichSuForm extends JFrame{
     private JScrollPane scrollPane;
@@ -16,9 +14,9 @@ public class LichSuForm extends JFrame{
     private JButton btnHuy;
     private DefaultTableModel model;
 
-    public LichSuForm() {
+    public LichSuForm(Users user) {
         setTitle("Lịch Sử Đặt Phòng");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
         setContentPane(mainPanel);
         setLocationRelativeTo(null);
         setSize(700, 400);
@@ -28,8 +26,8 @@ public class LichSuForm extends JFrame{
         );
         table.setModel(model);
 
-        loadData();
-        btnHuy.addActionListener(e -> huy());
+        loadData(user.getUserId());
+        btnHuy.addActionListener(e -> huy(user.getUserId()));
     }
 
 
@@ -38,7 +36,7 @@ public class LichSuForm extends JFrame{
     }
 
 
-    public void loadData(){
+    public void loadData(String userID){
 
         model.setRowCount(0);
         String sql = """
@@ -50,12 +48,14 @@ public class LichSuForm extends JFrame{
         FROM RoomBooking rb
         JOIN Status s ON rb.BookingID = s.BookingID
         JOIN Room r ON s.RoomID = r.RoomID
-        WHERE rb.UserID = 11
+        WHERE rb.UserID = ?
         """;
 
         try (Connection conn = ConnectJDBC.getConnection();
-             Statement stm = conn.createStatement();
-             ResultSet rs = stm.executeQuery(sql)) {
+             PreparedStatement ps= conn.prepareStatement(sql);)
+             {
+             ps.setString(1,userID);
+                 ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 model.addRow(new Object[]{
@@ -72,7 +72,7 @@ public class LichSuForm extends JFrame{
             e.printStackTrace();
         }
     }
-    public void huy(){
+    public void huy(String userId){
         Connection conn= ConnectJDBC.getConnection();
         int sl=table.getSelectedRow();
         String sql= "UPDATE s\n" +
@@ -85,13 +85,11 @@ public class LichSuForm extends JFrame{
             Statement stm= conn.createStatement();
             stm.executeUpdate(sql);
             JOptionPane.showMessageDialog(null,"Đã hủy thành công !");
-            loadData();
+            loadData(userId);
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    public static void main(String[] args) {
-            new LichSuForm().setVisible(true);
-    }
+
 }
