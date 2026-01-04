@@ -23,7 +23,6 @@ public class DKFORM extends JFrame{
 
     public DKFORM() {
         setTitle("Form Đăng Ký");
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setContentPane(MainPanel);
         setLocationRelativeTo(null);
         setSize(400,350);
@@ -44,8 +43,8 @@ public class DKFORM extends JFrame{
                         user.setUsername(txtUserName.getText().trim());
                         user.setRole("USER");
                         UserDAO.insert(user);
-
-
+                        DKFORM.this.dispose();
+                        new DNFORM().setVisible(true);
                     }
                 } else {
                     JOptionPane.showMessageDialog(DKFORM.this,"Vui lòng điền đủ thông tin !");

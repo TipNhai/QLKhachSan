@@ -35,10 +35,14 @@ public class UserDAO {
             conn.close();
         } catch (SQLException ex) {
             // Lỗi trùng khóa (SQL Server)
-            if (ex.getErrorCode() == 2627 || ex.getErrorCode() == 2601) {
+            String msg = ex.getMessage();
+
+            if (msg.contains("Username")) {
                 JOptionPane.showMessageDialog(null, "Tên đăng nhập đã tồn tại!");
+            } else if (msg.contains("Email")) {
+                JOptionPane.showMessageDialog(null, "Email đã được sử dụng!");
             } else {
-                JOptionPane.showMessageDialog(null, "Lỗi hệ thống: " + ex.getMessage());
+                JOptionPane.showMessageDialog(null, "Dữ liệu bị trùng!");
             }
         }
 
