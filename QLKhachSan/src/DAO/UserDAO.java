@@ -20,7 +20,7 @@ import static Utils.Set.setRoom;
 import static Utils.Set.setUsers;
 
 public class UserDAO {
-    public static void insert(Users user){
+    public static boolean insert(Users user){
         Connection conn= ConnectJDBC.getConnection();
         String sql="Insert into Users(Username,Password,Role,FullName,Email,Phone) Values(?,?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -33,6 +33,7 @@ public class UserDAO {
             ps.executeUpdate();
             JOptionPane.showMessageDialog(null,"Đã Tạo Tài Khoản !");
             conn.close();
+            return true;
         } catch (SQLException ex) {
             // Lỗi trùng khóa (SQL Server)
             String msg = ex.getMessage();
@@ -45,7 +46,7 @@ public class UserDAO {
                 JOptionPane.showMessageDialog(null, "Dữ liệu bị trùng!");
             }
         }
-
+            return false;
     }
     public static Users dNhap(String Username,String Password) {
         String sql =

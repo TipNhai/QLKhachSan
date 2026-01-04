@@ -42,9 +42,11 @@ public class DKFORM extends JFrame{
                         user.setPassword(password.trim());
                         user.setUsername(txtUserName.getText().trim());
                         user.setRole("USER");
-                        UserDAO.insert(user);
-                        DKFORM.this.dispose();
-                        new DNFORM().setVisible(true);
+                       boolean sucess= UserDAO.insert(user);
+                        if(sucess){
+                            DKFORM.this.dispose();
+                            new DNFORM().setVisible(true);
+                        }
                     }
                 } else {
                     JOptionPane.showMessageDialog(DKFORM.this,"Vui lòng điền đủ thông tin !");
