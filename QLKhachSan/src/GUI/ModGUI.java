@@ -1,5 +1,6 @@
 package GUI;
 
+import DAO.ModDAO;
 import DAO.UserDAO;
 import Model.BeanDTO;
 import Model.Room;
@@ -26,6 +27,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import static DAO.ModDAO.*;
 import static Utils.Change.changeTypeDate;
 
 public class ModGUI extends JFrame {
@@ -61,13 +63,16 @@ public class ModGUI extends JFrame {
         btnCancel.setFocusPainted(false);
         btnCheckIn.setFocusPainted(false);
         btnLogout.setFocusPainted(false);
-        loadData(UserDAO.selectRoom(null));
-        loadBookingTable();
+        loadData(UserDAO.selectRoom(null),modelRoom);
+        loadBookingTable(modelBooking);
         setupSearch();
         //ActionListener
-        btnSearch.addActionListener(e->loadData(UserDAO.selectRoom(search())));
+        btnSearch.addActionListener(e->loadData(UserDAO.selectRoom(search()),modelRoom));
 
-        btnAdd.addActionListener(e->UserDAO.booking("10",subcribe(),sub));
+        btnAdd.addActionListener(e->{
+            UserDAO.booking("10",subcribe(),sub);
+            loadBookingTable(modelBooking);
+        });
 
         tblBooking.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting() || isUpdating) return;
@@ -90,7 +95,7 @@ public class ModGUI extends JFrame {
         });
 
 
-        cboStatus.addActionListener(e -> filterByStatus());
+        cboStatus.addActionListener(e -> filterByStatus(cboStatus, sorter));
 
 
 
@@ -104,11 +109,11 @@ public class ModGUI extends JFrame {
 
         btnUpdate.addActionListener(e ->update());
 
-        btnCheckIn.addActionListener(e->handleCheckIn());
+        btnCheckIn.addActionListener(e-> ModDAO.handleCheckIn(tblBooking,modelBooking));
         btnCheckOut.addActionListener(e->{
             PaymentGUI dialog = new PaymentGUI(this, txtBookingID.getText());
             dialog.setVisible(true); // CHỜ đến khi đóng dialog
-            handleCheckOut();
+            handleCheckOut( tblBooking, modelBooking);
         });
         btnLogout.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(
@@ -377,56 +382,8 @@ public class ModGUI extends JFrame {
         return res;
     }
 
-    public void loadData(List<Room> listRoom){
-        modelRoom.setRowCount(0);
-        for(Room r:listRoom){
-
-            Object[] row={
-                   r.getRoomId(), r.getRoomNumber(),r.getRoomType(),r.getPrice()
-            };
-            modelRoom.addRow(row);
-        }
 
 
-
-    }
-
-    public void loadBookingTable() {
-        modelBooking.setRowCount(0); // clear bảng
-
-
-        String sql = """
-        SELECT rb.BookingID, u.FullName,r.RoomNumber,  r.RoomType,
-              rb.BookingDate, DATEADD(day, rb.TotalDays, rb.BookingDate) AS CheckoutDate,
-               s.Status
-        FROM RoomBooking rb
-        Inner Join Users u on u.UserID=rb.UserID
-        Inner Join Status s on s.BookingID=rb.BookingID
-        Inner Join Room r on r.RoomID=s.RoomID
-        where 1=1 
-    """;
-
-        try (Connection con = ConnectJDBC.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                modelBooking.addRow(new Object[]{
-                        rs.getString("BookingID"),
-                        rs.getString("FullName"),
-                        rs.getString("RoomNumber"),
-                        rs.getString("RoomType"),
-                        rs.getDate("BookingDate"),
-                        rs.getDate("CheckoutDate"),
-                        rs.getString("Status")
-                });
-            }
-            con.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     public void update(){
         String sql="UPDATE Status\n" +
@@ -452,7 +409,7 @@ public class ModGUI extends JFrame {
             ps.executeUpdate();
 
             JOptionPane.showMessageDialog(null,"Đã cập nhật thành công !");
-            loadBookingTable();
+            loadBookingTable(modelBooking);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -498,148 +455,5 @@ public class ModGUI extends JFrame {
         txtBookingID.getDocument().addDocumentListener(dl);
     }
 
-
-    private void handleCheckIn() {
-        int row = tblBooking.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một booking!");
-            return;
-        }
-        Object dateObj = tblBooking.getValueAt(row, 4);
-        LocalDate bookingDate;
-
-        if (dateObj instanceof java.sql.Date) {
-            bookingDate = ((java.sql.Date) dateObj).toLocalDate();
-        } else {
-            bookingDate = LocalDate.parse(dateObj.toString());
-        }
-
-// Lấy ngày hôm nay
-        LocalDate today = LocalDate.now();
-
-// So sánh
-        if (!bookingDate.isEqual(today)) {
-            JOptionPane.showMessageDialog(this,
-                    "Chỉ được thao tác với booking trong ngày hôm nay!");
-            return;
-        }
-
-        String bookingId = tblBooking.getValueAt(row, 0).toString(); // BookingID dạng String
-
-        String sql = """
-        UPDATE RoomBooking
-        SET CheckInTime = GETDATE()
-          
-        WHERE BookingID = ?
-    """;
-
-        try (Connection con = ConnectJDBC.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, bookingId);
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this, "Check-in thành công!");
-            loadBookingTable();
-            con.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi check-in!");
-        }
-    }
-
-    private void handleCheckOut() {
-        int row = tblBooking.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn một booking!");
-            return;
-        }
-        Object dateObj = tblBooking.getValueAt(row, 5);
-        LocalDate dateCheckOut;
-
-        if (dateObj instanceof java.sql.Date) {
-            dateCheckOut = ((java.sql.Date) dateObj).toLocalDate();
-        } else {
-            dateCheckOut = LocalDate.parse(dateObj.toString());
-        }
-
-// Lấy ngày hôm nay
-        LocalDate today = LocalDate.now();
-
-// So sánh
-        if (!dateCheckOut.isEqual(today)) {
-            JOptionPane.showMessageDialog(this,
-                    "Chỉ được thao tác với booking trong ngày hôm nay!");
-            return;
-        }
-        String bookingId = tblBooking.getValueAt(row, 0).toString();
-
-        String sql = """
-        UPDATE RoomBooking
-        SET CheckOutTime = GETDATE()
-            
-        WHERE BookingID = ?
-    """;
-
-        try (Connection con = ConnectJDBC.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
-            ps.setString(1, bookingId);
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this, "Check-out thành công!");
-            loadBookingTable();
-            con.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Lỗi khi check-out!");
-        }
-    }
-
-    private void filterByStatus() {
-        String status = cboStatus.getSelectedItem().toString();
-        LocalDate today = LocalDate.now();
-
-        if (status.equals("Tất cả")) {
-            sorter.setRowFilter(null);
-            return;
-        }
-
-        RowFilter<Object, Object> rf = new RowFilter<>() {
-            @Override
-            public boolean include(Entry<?, ?> entry) {
-
-                try {
-                    // Cột 4: Ngày nhận | Cột 5: Ngày trả
-                    LocalDate checkIn  = LocalDate.parse(entry.getStringValue(4));
-                    LocalDate checkOut = LocalDate.parse(entry.getStringValue(5));
-
-                    if (status.equals("Check-in hôm nay")) {
-                        return checkIn.equals(today);
-                    }
-
-                    if (status.equals("Check-out hôm nay")) {
-                        return checkOut.equals(today);
-                    }
-
-                } catch (Exception e) {
-                    return false;
-                }
-
-                return true;
-            }
-        };
-
-        sorter.setRowFilter(rf);
-    }
-
-
-
-
-
-    // ================= MAIN =================
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ModGUI(null).setVisible(true));
-    }
 }
 
